@@ -54,6 +54,7 @@
 				table.insert(T_GAMES, tTable)
 			end
 		end
+		InitializeFilters()
 		if T_GAMES ~= nil and #T_GAMES > 0 then
 			FilterBy('')
 		elseif T_NOT_INSTALLED_GAMES ~= nil and #T_NOT_INSTALLED_GAMES > 0 then
@@ -1317,6 +1318,66 @@
 		}
 	end
 --###########################################################################################################
+--                           -> Filters
+--###########################################################################################################
+	function InitializeFilters()
+		T_FILTERS = {
+			steam = {
+				fFunc = FilterPlatform,
+				tArgs = {
+					E_PLATFORMS.STEAM
+				}
+			},
+			galaxy = {
+				fFunc = FilterPlatform,
+				tArgs = {
+					E_PLATFORMS.GOG_GALAXY
+				}
+			},
+			blizzard = {
+				fFunc = FilterPlatform,
+				tArgs = {
+					E_PLATFORMS.BATTLENET
+				}
+			},
+			battlenet = {
+				fFunc = FilterPlatform,
+				tArgs = {
+					E_PLATFORMS.BATTLENET
+				}
+			},
+			tags = {
+				fFunc = FilterTags,
+				tArgs = {}
+			},
+			installed = {
+				fFunc = FilterInstalled,
+				tArgs = {}
+			},
+			hidden = {
+				fFunc = FilterHidden,
+				tArgs = {}
+			},
+			games = {
+				fFunc = FilterGames,
+				tArgs = {}
+			},
+			random = {
+				fFunc = FilterRandom,
+				tArgs = {}
+			},
+			played = {
+				fFunc = FilterPlayed,
+				tArgs = {}
+			},
+			shortcuts = {
+				fFunc = FilterShortcuts,
+				tArgs = {}
+			},
+		}
+		-- TODO: Implement dynamic filters here
+	end
+--###########################################################################################################
 --         -> Functionality
 --###########################################################################################################
 --                          -> Launching games
@@ -1528,9 +1589,8 @@
 		PopulateSlots()
 	end
 
-	function FilterPlatform(atTable, asPattern, asTag, anPlatform)
+	function FilterPlatform(atTable, asPattern, anPlatform)
 		local tResult = {}
-		asPattern = asPattern:sub(#asTag + 1)
 		if STRING:StartsWith(asPattern, 'i') then --platform:installed
 			for i, tGame in ipairs(atTable) do
 				if tGame[E_GAME_KEYS.PLATFORM] == anPlatform and tGame[E_GAME_KEYS.NOT_INSTALLED] ~= true then
@@ -1577,178 +1637,246 @@
 		return tResult
 	end
 
+	function FilterPlatformOverride(atTable, asPattern, asPlatformOverride)
+		local tResult = {}
+		if STRING:StartsWith(asPattern, 'i') then --platform:installed
+			for i, tGame in ipairs(atTable) do
+				if tGame[E_GAME_KEYS.PLATFORM_OVERRIDE] == asPlatformOverride and tGame[E_GAME_KEYS.NOT_INSTALLED] ~= true then
+					table.insert(tResult, tGame)
+				end
+			end
+		elseif STRING:StartsWith(asPattern, 'u') then --platform:uninstalled
+			for i, tGame in ipairs(atTable) do
+				if tGame[E_GAME_KEYS.PLATFORM_OVERRIDE] == asPlatformOverride and tGame[E_GAME_KEYS.NOT_INSTALLED] == true then
+					table.insert(tResult, tGame)
+				end
+			end
+		elseif STRING:StartsWith(asPattern, 'a') then --platform:all
+			for i, tGame in ipairs(atTable) do
+				if tGame[E_GAME_KEYS.PLATFORM_OVERRIDE] == asPlatformOverride then
+					table.insert(tResult, tGame)
+				end
+			end
+		elseif STRING:StartsWith(asPattern, 'p') then --platform:played
+			for i, tGame in ipairs(atTable) do
+				if tGame[E_GAME_KEYS.PLATFORM_OVERRIDE] == asPlatformOverride and tGame[E_GAME_KEYS.HOURS_TOTAL] > 0 then
+					table.insert(tResult, tGame)
+				end
+			end
+		elseif STRING:StartsWith(asPattern, 'n') then --platform:not played
+			for i, tGame in ipairs(atTable) do
+				if tGame[E_GAME_KEYS.PLATFORM_OVERRIDE] == asPlatformOverride and tGame[E_GAME_KEYS.HOURS_TOTAL] <= 0 then
+					table.insert(tResult, tGame)
+				end
+			end
+		elseif STRING:StartsWith(asPattern, 't') then --platform:true
+			for i, tGame in ipairs(atTable) do
+				if tGame[E_GAME_KEYS.PLATFORM_OVERRIDE] == asPlatformOverride then
+					table.insert(tResult, tGame)
+				end
+			end
+		elseif STRING:StartsWith(asPattern, 'f') then --platform:false
+			for i, tGame in ipairs(atTable) do
+				if tGame[E_GAME_KEYS.PLATFORM_OVERRIDE] ~= asPlatformOverride then
+					table.insert(tResult, tGame)
+				end
+			end
+		end
+		return tResult
+	end
+
+	function FilterTags(atTable, asPattern)
+		local tResult = {}
+		for i, tGame in ipairs(atTable) do
+			if tGame[E_GAME_KEYS.TAGS] ~= nil then
+				for sKey, sValue in pairs(tGame[E_GAME_KEYS.TAGS]) do
+					if sValue:lower():find(asPattern) then
+						table.insert(tResult, tGame)
+						break
+					end
+				end
+			end
+		end
+		return tResult
+	end
+
+	function FilterInstalled(atTable, asPattern)
+		local tResult = {}
+		if STRING:StartsWith(asPattern, 't') then
+			for i, tGame in ipairs(T_ALL_GAMES) do
+				if tGame[E_GAME_KEYS.NOT_INSTALLED] ~= true then
+					table.insert(tResult, tGame)
+				end
+			end				
+		elseif STRING:StartsWith(asPattern, 'f') then
+			for i, tGame in ipairs(T_ALL_GAMES) do
+				if tGame[E_GAME_KEYS.NOT_INSTALLED] == true then
+					table.insert(tResult, tGame)
+				end
+			end
+		end
+		return tResult
+	end
+
+	function FilterHidden(atTable, asPattern)
+		local tResult = {}
+		if STRING:StartsWith(asPattern, 't') then
+			for i, tGame in ipairs(T_ALL_GAMES) do
+				if tGame[E_GAME_KEYS.HIDDEN] == true then
+					table.insert(tResult, tGame)
+				end
+			end
+		elseif STRING:StartsWith(asPattern, 'f') then
+			for i, tGame in ipairs(T_ALL_GAMES) do
+				if tGame[E_GAME_KEYS.HIDDEN] ~= true then
+					table.insert(tResult, tGame)
+				end
+			end
+		end
+		return tResult
+	end
+
+	function FilterGames(atTable, asPattern)
+		local tResult = {}
+		if STRING:StartsWith(asPattern, 'a') then
+			for i, tGame in ipairs(T_ALL_GAMES) do
+				table.insert(tResult, tGame)
+			end
+		end	
+		return tResult
+	end
+
+	function FilterRandom(atTable, asPattern)
+		local tResult = {}
+		if asPattern == '' then
+			table.insert(tResult, atTable[math.random(1, #atTable)])
+		else
+			function get_all_games()
+				local tAllGames = {}
+				for i, tGame in ipairs(T_ALL_GAMES) do
+					table.insert(tAllGames, tGame)
+				end
+				return tAllGames
+			end
+
+			if STRING:StartsWith(asPattern, 'a') then
+				tResult = get_all_games()
+				if tResult ~= nil and #tResult > 0 then
+					tResult = {tResult[math.random(1, #tResult)]}
+				end
+			else
+				function get_all_games()
+					local tAllGames = {}
+					for i, tGame in ipairs(T_ALL_GAMES) do
+						if (tGame[E_GAME_KEYS.HIDDEN] and T_SETTINGS[E_SETTING_KEYS.SHOW_HIDDEN_GAMES])
+						   or (tGame[E_GAME_KEYS.NOT_INSTALLED]
+						   	  and T_SETTINGS[E_SETTING_KEYS.SHOW_NOT_INSTALLED_GAMES])
+						   or (not tGame[E_GAME_KEYS.HIDDEN] and not tGame[E_GAME_KEYS.NOT_INSTALLED]) then
+							table.insert(tAllGames, tGame)
+						end
+					end
+					return tAllGames
+				end
+				function get_all_games_from_platform(anPlatform)
+					local tAllGames = get_all_games()
+					local i = 1
+					while i <= #tAllGames do
+						if tAllGames[i][E_GAME_KEYS.PLATFORM] ~= anPlatform then
+							table.remove(tAllGames, i)
+						else
+							i = i + 1
+						end
+					end
+					return tAllGames
+				end
+
+				if STRING:StartsWith(asPattern, 's') then
+					tResult = get_all_games_from_platform(E_PLATFORMS.STEAM)
+				elseif STRING:StartsWith(asPattern, 'g') then
+					tResult = get_all_games_from_platform(E_PLATFORMS.GOG_GALAXY)
+				elseif STRING:StartsWith(asPattern, 'b') then
+					tResult = get_all_games_from_platform(E_PLATFORMS.BATTLENET)
+				elseif STRING:StartsWith(asPattern, 'p') then
+					tResult = get_all_games()
+					local i = 1
+					while i <= #tResult do
+						if tAllGames[i][E_GAME_KEYS.HOURS_TOTAL] <= 0 then
+							table.remove(tResult, i)
+						else
+							i = i + 1
+						end
+					end
+				elseif STRING:StartsWith(asPattern, 'n') then
+					tResult = get_all_games()
+					local i = 1
+					while i <= #tResult do
+						if tAllGames[i][E_GAME_KEYS.HOURS_TOTAL] > 0 then
+							table.remove(tResult, i)
+						else
+							i = i + 1
+						end
+					end
+				end
+				if tResult ~= nil and #tResult > 0 then
+					tResult = {tResult[math.random(1, #tResult)]}
+				end
+			end
+		end
+		return tResult
+	end
+
+	function FilterPlayed(atTable, asPattern)
+		local tResult = {}
+		if STRING:StartsWith(asPattern, 't') then
+			for i, tGame in ipairs(atTable) do
+				if tGame[E_GAME_KEYS.HOURS_TOTAL] > 0 then
+					table.insert(tResult, tGame)
+				end
+			end
+		elseif STRING:StartsWith(asPattern, 'f') then	
+			for i, tGame in ipairs(atTable) do
+				if tGame[E_GAME_KEYS.HOURS_TOTAL] <= 0 then
+					table.insert(tResult, tGame)
+				end
+			end
+		end
+		return tResult
+	end
+
+	function FilterShortcuts(atTable, asPattern)
+		local tResult = {}
+		if asPattern == '' then
+			for i, tGame in ipairs(atTable) do
+				if tGame[E_GAME_KEYS.PLATFORM] == E_PLATFORMS.WINDOWS_SHORTCUT
+				   or tGame[E_GAME_KEYS.PLATFORM] == E_PLATFORMS.WINDOWS_URL_SHORTCUT then
+					table.insert(tResult, tGame)
+				end
+			end
+		else
+			for i, tGame in ipairs(atTable) do
+				if tGame[E_GAME_KEYS.PLATFORM] == E_PLATFORMS.WINDOWS_SHORTCUT
+				   or tGame[E_GAME_KEYS.PLATFORM] == E_PLATFORMS.WINDOWS_URL_SHORTCUT then
+					if tGame[E_GAME_KEYS.PLATFORM_OVERRIDE] ~= nil
+					   and tGame[E_GAME_KEYS.PLATFORM_OVERRIDE]:lower():find(asPattern) then
+						table.insert(tResult, tGame)
+					end
+				end
+			end
+		end
+		return tResult
+	end
+
 	function Filter(atTable, asPattern)
 		local tResult = {}
 		if atTable == nil then
 			return tResult, false
 		end
-		if STRING:StartsWith(asPattern, 'steam:') then
-			tResult = FilterPlatform(atTable, asPattern, 'steam:', E_PLATFORMS.STEAM)
-		elseif STRING:StartsWith(asPattern, 'galaxy:') then
-			tResult = FilterPlatform(atTable, asPattern, 'galaxy:', E_PLATFORMS.GOG_GALAXY)
-		elseif STRING:StartsWith(asPattern, 'blizzard:') then
-			tResult = FilterPlatform(atTable, asPattern, 'blizzard:', E_PLATFORMS.BATTLENET)
-		elseif STRING:StartsWith(asPattern, 'battlenet:') then --Deprecate at some point
-			tResult = FilterPlatform(atTable, asPattern, 'battlenet:', E_PLATFORMS.BATTLENET)
-		elseif STRING:StartsWith(asPattern, 'tags:') then
-			asPattern = asPattern:sub(6)
-			for i, tGame in ipairs(atTable) do
-				if tGame[E_GAME_KEYS.TAGS] ~= nil then
-					for sKey, sValue in pairs(tGame[E_GAME_KEYS.TAGS]) do
-						if sValue:lower():find(asPattern) then
-							table.insert(tResult, tGame)
-							break
-						end
-					end
-				end
-			end
-		elseif STRING:StartsWith(asPattern, 'installed:') then
-			asPattern = asPattern:sub(11)
-			if STRING:StartsWith(asPattern, 't') then
-				for i, tGame in ipairs(T_ALL_GAMES) do
-					if tGame[E_GAME_KEYS.NOT_INSTALLED] ~= true then
-						table.insert(tResult, tGame)
-					end
-				end				
-			elseif STRING:StartsWith(asPattern, 'f') then
-				for i, tGame in ipairs(T_ALL_GAMES) do
-					if tGame[E_GAME_KEYS.NOT_INSTALLED] == true then
-						table.insert(tResult, tGame)
-					end
-				end
-			end
-		elseif STRING:StartsWith(asPattern, 'hidden:') then
-			asPattern = asPattern:sub(8)
-			if STRING:StartsWith(asPattern, 't') then
-				for i, tGame in ipairs(T_ALL_GAMES) do
-					if tGame[E_GAME_KEYS.HIDDEN] == true then
-						table.insert(tResult, tGame)
-					end
-				end
-			elseif STRING:StartsWith(asPattern, 'f') then
-				for i, tGame in ipairs(T_ALL_GAMES) do
-					if tGame[E_GAME_KEYS.HIDDEN] ~= true then
-						table.insert(tResult, tGame)
-					end
-				end
-			end
-		elseif STRING:StartsWith(asPattern, 'games:') then
-			asPattern = asPattern:sub(7)
-			if STRING:StartsWith(asPattern, 'a') then
-				for i, tGame in ipairs(T_ALL_GAMES) do
-					table.insert(tResult, tGame)
-				end
-			end	
-		elseif STRING:StartsWith(asPattern, 'random:') then
-			asPattern = asPattern:sub(8)
-			if asPattern == '' then
-				table.insert(tResult, atTable[math.random(1, #atTable)])
-			else
-				function get_all_games()
-					local tAllGames = {}
-					for i, tGame in ipairs(T_ALL_GAMES) do
-						table.insert(tAllGames, tGame)
-					end
-					return tAllGames
-				end
-
-				if STRING:StartsWith(asPattern, 'a') then
-					tResult = get_all_games()
-					if tResult ~= nil and #tResult > 0 then
-						tResult = {tResult[math.random(1, #tResult)]}
-					end
-				else
-					function get_all_games()
-						local tAllGames = {}
-						for i, tGame in ipairs(T_ALL_GAMES) do
-							if (tGame[E_GAME_KEYS.HIDDEN] and T_SETTINGS[E_SETTING_KEYS.SHOW_HIDDEN_GAMES])
-							   or (tGame[E_GAME_KEYS.NOT_INSTALLED]
-							   	  and T_SETTINGS[E_SETTING_KEYS.SHOW_NOT_INSTALLED_GAMES])
-							   or (not tGame[E_GAME_KEYS.HIDDEN] and not tGame[E_GAME_KEYS.NOT_INSTALLED]) then
-								table.insert(tAllGames, tGame)
-							end
-						end
-						return tAllGames
-					end
-					function get_all_games_from_platform(anPlatform)
-						local tAllGames = get_all_games()
-						local i = 1
-						while i <= #tAllGames do
-							if tAllGames[i][E_GAME_KEYS.PLATFORM] ~= anPlatform then
-								table.remove(tAllGames, i)
-							else
-								i = i + 1
-							end
-						end
-						return tAllGames
-					end
-
-					if STRING:StartsWith(asPattern, 's') then
-						tResult = get_all_games_from_platform(E_PLATFORMS.STEAM)
-					elseif STRING:StartsWith(asPattern, 'g') then
-						tResult = get_all_games_from_platform(E_PLATFORMS.GOG_GALAXY)
-					elseif STRING:StartsWith(asPattern, 'b') then
-						tResult = get_all_games_from_platform(E_PLATFORMS.BATTLENET)
-					elseif STRING:StartsWith(asPattern, 'p') then
-						tResult = get_all_games()
-						local i = 1
-						while i <= #tResult do
-							if tAllGames[i][E_GAME_KEYS.HOURS_TOTAL] <= 0 then
-								table.remove(tResult, i)
-							else
-								i = i + 1
-							end
-						end
-					elseif STRING:StartsWith(asPattern, 'n') then
-						tResult = get_all_games()
-						local i = 1
-						while i <= #tResult do
-							if tAllGames[i][E_GAME_KEYS.HOURS_TOTAL] > 0 then
-								table.remove(tResult, i)
-							else
-								i = i + 1
-							end
-						end
-					end
-					if tResult ~= nil and #tResult > 0 then
-						tResult = {tResult[math.random(1, #tResult)]}
-					end
-				end
-			end
-		elseif STRING:StartsWith(asPattern, 'played:') then
-			asPattern = asPattern:sub(8)
-			if STRING:StartsWith(asPattern, 't') then
-				for i, tGame in ipairs(atTable) do
-					if tGame[E_GAME_KEYS.HOURS_TOTAL] > 0 then
-						table.insert(tResult, tGame)
-					end
-				end
-			elseif STRING:StartsWith(asPattern, 'f') then	
-				for i, tGame in ipairs(atTable) do
-					if tGame[E_GAME_KEYS.HOURS_TOTAL] <= 0 then
-						table.insert(tResult, tGame)
-					end
-				end
-			end
-		elseif STRING:StartsWith(asPattern, 'shortcuts:') then
-			asPattern = asPattern:sub(11)
-			if asPattern == '' then
-				for i, tGame in ipairs(atTable) do
-					if tGame[E_GAME_KEYS.PLATFORM] == E_PLATFORMS.WINDOWS_SHORTCUT
-					   or tGame[E_GAME_KEYS.PLATFORM] == E_PLATFORMS.WINDOWS_URL_SHORTCUT then
-						table.insert(tResult, tGame)
-					end
-				end
-			else
-				for i, tGame in ipairs(atTable) do
-					if tGame[E_GAME_KEYS.PLATFORM] == E_PLATFORMS.WINDOWS_SHORTCUT
-					   or tGame[E_GAME_KEYS.PLATFORM] == E_PLATFORMS.WINDOWS_URL_SHORTCUT then
-						if tGame[E_GAME_KEYS.PLATFORM_OVERRIDE] ~= nil
-						   and tGame[E_GAME_KEYS.PLATFORM_OVERRIDE]:lower():find(asPattern) then
-							table.insert(tResult, tGame)
-						end
-					end
-				end
+		local sFilter = asPattern:match('([^:]+):')
+		if sFilter ~= nil then
+			local tFilterComponents = T_FILTERS[sFilter]
+			if tFilterComponents ~= nil then
+				asPattern = asPattern:sub(#sFilter + 2)
+				tResult = tFilterComponents.fFunc(atTable, asPattern, unpack(tFilterComponents.tArgs))
 			end
 		else
 			if T_SETTINGS[E_SETTING_KEYS.FUZZY_SEARCH] == true then
