@@ -1347,32 +1347,25 @@
 				}
 			},
 			tags = {
-				fFunc = FilterTags,
-				tArgs = {}
+				fFunc = FilterTags
 			},
 			installed = {
-				fFunc = FilterInstalled,
-				tArgs = {}
+				fFunc = FilterInstalled
 			},
 			hidden = {
-				fFunc = FilterHidden,
-				tArgs = {}
+				fFunc = FilterHidden
 			},
 			games = {
-				fFunc = FilterGames,
-				tArgs = {}
+				fFunc = FilterGames
 			},
 			random = {
-				fFunc = FilterRandom,
-				tArgs = {}
+				fFunc = FilterRandom
 			},
 			played = {
-				fFunc = FilterPlayed,
-				tArgs = {}
+				fFunc = FilterPlayed
 			},
 			shortcuts = {
-				fFunc = FilterShortcuts,
-				tArgs = {}
+				fFunc = FilterShortcuts
 			},
 		}
 		-- TODO: Implement dynamic filters here
@@ -1876,7 +1869,11 @@
 			local tFilterComponents = T_FILTERS[sFilter]
 			if tFilterComponents ~= nil then
 				asPattern = asPattern:sub(#sFilter + 2)
-				tResult = tFilterComponents.fFunc(atTable, asPattern, unpack(tFilterComponents.tArgs))
+				if tFilterComponents.tArgs ~= nil then
+					tResult = tFilterComponents.fFunc(atTable, asPattern, unpack(tFilterComponents.tArgs))
+				else
+					tResult = tFilterComponents.fFunc(atTable, asPattern)
+				end
 			end
 		else
 			if T_SETTINGS[E_SETTING_KEYS.FUZZY_SEARCH] == true then
