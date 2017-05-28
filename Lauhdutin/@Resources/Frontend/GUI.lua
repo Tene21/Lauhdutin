@@ -45,6 +45,8 @@
 	-- Show games or display a message that there are no games to show
 		C_STATUS_MESSAGE:Hide()
 		T_ALL_GAMES = C_RESOURCES:ReadGames()
+		local tPlatformOverrides = {}
+		local tTags = {}
 		for sKey, tTable in pairs(T_ALL_GAMES) do
 			if tTable[E_GAME_KEYS.HIDDEN] == true then
 				table.insert(T_HIDDEN_GAMES, tTable)
@@ -53,8 +55,16 @@
 			else
 				table.insert(T_GAMES, tTable)
 			end
+			if tTable.tags ~= nil then
+				for sTagKey, sTag in pairs(tTable.tags) do
+					tTags[sTag] = true
+				end
+			end
+			if tTable.platformoverride ~= nil then
+				tPlatformOverrides[tTable.platformoverride] = true
+			end
 		end
-		InitializeFilters()
+		InitializeFilters(tPlatformOverrides, tTags)
 		if T_GAMES ~= nil and #T_GAMES > 0 then
 			FilterBy('')
 		elseif T_NOT_INSTALLED_GAMES ~= nil and #T_NOT_INSTALLED_GAMES > 0 then
@@ -1320,7 +1330,7 @@
 --###########################################################################################################
 --                           -> Filters
 --###########################################################################################################
-	function InitializeFilters()
+	function InitializeFilters(atPlatformOverrides, atTags)
 		T_FILTERS = {
 			steam = {
 				fFunc = FilterPlatform,
@@ -1369,6 +1379,23 @@
 			},
 		}
 		-- TODO: Implement dynamic filters here
+		for sPlatformOverride, _ in pairs(atPlatformOverrides) do
+			if T_FILTERS[sPlatformOverride:lower()] == nil then
+				T_FILTERS[sPlatformOverride:lower()] = {
+					fFunc = FilterPlatformOverride,
+					tArgs = {
+						sPlatformOverride
+					}
+				}
+			end
+		end
+		for sTag, _ in pairs(atTags) do
+			if T_FILTERS[sTag:lower()] == nil then
+				T_FILTERS[sTag:lower()] = {
+					fFunc = FilterTags
+				}
+			end
+		end
 	end
 --###########################################################################################################
 --         -> Functionality
