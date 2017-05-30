@@ -1,4 +1,4 @@
-# If GameKeys values are changed, then the changes have to be copied over to the 'GAME_KEYS' table in GUI.lua.
+# If values are changed, then the changes have to be copied over to Enums.lua and vice versa.
 class GameKeys():
     ARGUMENTS = "arguments"
     BANNER_ERROR = "bannererror"
@@ -12,8 +12,8 @@ class GameKeys():
     INVALID_PATH = "invalidpatherror"
     LASTPLAYED = "lastplayed"
     NAME = "title"
-    NOTES = "notes"
     NOT_INSTALLED = "notinstalled"
+    NOTES = "notes"
     PATH = "path"
     PLATFORM = "platform"
     PLATFORM_OVERRIDE = "platformoverride"
@@ -22,7 +22,6 @@ class GameKeys():
     TAGS = "tags"
 
 
-# If Platform values are changed, then the changes have to be copied over to the 'PLATFORM' table in GUI.lua.
 class Platform():
     STEAM = 0
     STEAM_SHORTCUT = 1
@@ -30,6 +29,7 @@ class Platform():
     WINDOWS_SHORTCUT = 3
     WINDOWS_URL_SHORTCUT = 4
     BATTLENET = 5
+
 
 class SettingKeys():
     ADJUST_ZPOS = "adjust_zpos"
@@ -49,13 +49,14 @@ class SettingKeys():
     SHOW_NOT_INSTALLED_GAMES = "installed_games"
     SLOT_BACKGROUND_COLOR = "slot_background_color"
     SLOT_COUNT = "slot_count"
-    SLOT_ROWS_COLUMNS = "slot_rows_columns"
     SLOT_COUNT_PER_ROW_COLUMN = "slot_count_per_row_column"
+    SLOT_DOUBLE_LEFT_CLICK = "slot_double_left_click"
     SLOT_HEIGHT = "slot_height"
     SLOT_HIGHLIGHT = "slot_highlight"
     SLOT_HIGHLIGHT_HOURS_PLAYED = "show_hours_played"
     SLOT_HIGHLIGHT_PLATFORM = "show_platform"
     SLOT_HIGHLIGHT_PLATFORM_RUNNING = "show_platform_running"
+    SLOT_ROWS_COLUMNS = "slot_rows_columns"
     SLOT_TEXT_COLOR = "slot_text_color"
     SLOT_WIDTH = "slot_width"
     SORT_STATE = "sortstate"

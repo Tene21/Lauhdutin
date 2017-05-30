@@ -191,8 +191,13 @@ try:
                     "H=%s" % SLOT_HEIGHT,
                     "SolidColor=0,0,0,1",
                     "PreserveAspectRatio=2",
-                    "DynamicVariables=1",
-                    """LeftMouseUpAction=[!CommandMeasure LauhdutinScript "OnLeftClickSlot(%s)"]""" % nSlotNumber,
+                    "DynamicVariables=1"
+                ])
+                if SETTINGS.get("slot_double_left_click", False):
+                    contents.append("""LeftMouseDoubleClickAction=[!CommandMeasure LauhdutinScript "OnLeftClickSlot(%s)"]"""% nSlotNumber)
+                else:
+                    contents.append("""LeftMouseUpAction=[!CommandMeasure LauhdutinScript "OnLeftClickSlot(%s)"]""" % nSlotNumber)
+                contents.extend([
                     """MiddleMouseUpAction=[!CommandMeasure LauhdutinScript "OnMiddleClickSlot(%s)"]""" % nSlotNumber,
                     """MouseOverAction=[!CommandMeasure LauhdutinScript "OnMouseEnterSlot(%s)"]""" % nSlotNumber,
                     """MouseLeaveAction=[!CommandMeasure LauhdutinScript "OnMouseLeaveSlot(%s)"]""" % nSlotNumber,
