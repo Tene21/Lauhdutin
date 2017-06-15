@@ -61,7 +61,7 @@
 		elseif T_HIDDEN_GAMES ~= nil and #T_HIDDEN_GAMES > 0 then
 			FilterBy('hidden:true')
 		else
-			C_STATUS_MESSAGE:Show('No games to display')
+			C_STATUS_MESSAGE:Show('status_no_games')
 		end
 		if T_SETTINGS[E_SETTING_KEYS.ANIMATION_SKIN_SLIDE_DIRECTION] > 0 then
 			C_SCRIPT:SetUpdateDivider(1)
@@ -244,7 +244,7 @@
 			end
 		end
 		if #T_FILTERED_GAMES <= 0 then
-			OnShowStatus('No matches')
+			OnShowStatus('warning_no_matches')
 		end
 	end
 
@@ -565,7 +565,8 @@
 		local nSlotCount = tonumber(T_SETTINGS[E_SETTING_KEYS.SLOT_COUNT])
 		local j = N_SCROLL_INDEX
 		for i = 1, nSlotCount do -- Iterate through each slot.
-			if j > 0 and j <= #T_FILTERED_GAMES then -- If the scroll index, 'j', is a valid index in the table 'T_FILTERED_GAMES'
+			if j > 0 and j <= #T_FILTERED_GAMES then
+			-- If the scroll index, 'j', is a valid index in the table 'T_FILTERED_GAMES'
 				if C_RESOURCES:BannerExists(T_FILTERED_GAMES[j][E_GAME_KEYS.BANNER_PATH]) then
 					SKIN:Bang(
 						'[!SetOption "SlotText' .. i .. '" "Text" ""]'
@@ -639,6 +640,8 @@
 		if not T_SETTINGS then
 			return false
 		end
+		C_TRANSLATION = C_RESOURCES:ReadTranslation('English')
+		--TODO: Implement support for a setting to change the language
 		C_TOOLBAR = InitializeToolbar()
 		C_STATUS_MESSAGE = InitializeStatusMessage()
 		C_SLOT_SUBMENU = InitializeSlotSubmenu()
@@ -771,6 +774,25 @@
 
 			WriteGames = function (self)
 				return self:WriteJSON('games.json', T_ALL_GAMES)
+			end,
+
+			ReadTranslation = function(self, asLanguage)
+				local tResult = {
+					_tLookupTable = dofile(self.sResourcesPath .. 'Translations/' .. asLanguage .. '.lua'),
+					Get = function(self, asMessage)
+						print('Original: ' .. asMessage)
+						if self._tLookupTable[asMessage] ~= nil then
+							print('Translation: ' .. self._tLookupTable[asMessage])
+						else
+							print('Translation missing!')
+						end
+						return self._tLookupTable[asMessage] or asMessage
+					end
+				}
+				if tResult._tLookupTable == nil then
+					tResult._tLookupTable = dofile(self.sResourcesPath .. 'Translations/English.lua')
+				end
+				return tResult
 			end
 		}
 	end
@@ -875,7 +897,7 @@
 			-- asMessage: 
 				self.bVisible = true
 				SKIN:Bang(
-					'[!SetOption "StatusMessage" "Text" "' .. asMessage .. '"]'
+					'[!SetOption "StatusMessage" "Text" "' .. C_TRANSLATION:Get(asMessage) .. '"]'
 					.. '[!UpdateMeterGroup "Status"]'
 					.. '[!ShowMeterGroup "Status"]'
 				)
@@ -913,8 +935,10 @@
 				local nSlotHeight = tonumber(T_SETTINGS[E_SETTING_KEYS.SLOT_HEIGHT])
 				local nY = mBanner:GetY(true)
 				SKIN:Bang(
-					'[!SetOption "SlotSubmenuBackground" "X" "' .. nX + (nSlotWidth - nSlotWidth / 1.1) / 2 .. '"]'
-					.. '[!SetOption "SlotSubmenuBackground" "Y"' .. nY + (nSlotHeight - nSlotHeight / 1.1) / 2 .. '"]'
+					'[!SetOption "SlotSubmenuBackground" "X" "'
+					.. nX + (nSlotWidth - nSlotWidth / 1.1) / 2 .. '"]'
+					.. '[!SetOption "SlotSubmenuBackground" "Y"'
+					.. nY + (nSlotHeight - nSlotHeight / 1.1) / 2 .. '"]'
 					.. '[!SetOption "SlotSubmenuIcon1" "X" "(' .. nX .. ' + #SlotWidth# / 6 - 15)"]'
 				)
 				if tGame[E_GAME_KEYS.IGNORES_BANGS] then
@@ -1177,7 +1201,7 @@
 							'[!SetOption "SlotHighlight" "ImageName" "#@#Icons\\SlotHighlightError.png"]'
 						)
 						if tGame[E_GAME_KEYS.INVALID_PATH] then
-							sHighlightMessage = 'Invalid path'
+							sHighlightMessage = C_TRANSLATION:Get('error_invalid_path')
 						end
 					elseif T_SETTINGS[E_SETTING_KEYS.SLOT_HIGHLIGHT_PLATFORM_RUNNING]
 					   and (tGame[E_GAME_KEYS.PLATFORM] == E_PLATFORMS.STEAM
@@ -1186,16 +1210,30 @@
 						SKIN:Bang(
 							'[!SetOption "SlotHighlight" "ImageName" "#@#Icons\\SlotHighlightError.png"]'
 						)
-						sHighlightMessage = T_PLATFORM_DESCRIPTIONS[tGame[E_GAME_KEYS.PLATFORM] + 1]
-											.. ' is not running'
+						sHighlightMessage = string.format(C_TRANSLATION:Get('warning_platform_not_running'),
+															C_TRANSLATION:Get(
+																T_PLATFORM_DESCRIPTIONS[
+																	tGame[
+																		E_GAME_KEYS.PLATFORM
+																	] + 1
+																]
+															)
+														)
 					elseif T_SETTINGS[E_SETTING_KEYS.SLOT_HIGHLIGHT_PLATFORM_RUNNING]
 						   and tGame[E_GAME_KEYS.PLATFORM] == E_PLATFORMS.BATTLENET
 						   and not C_SKIN.bBattlenetRunning then
 						SKIN:Bang(
 							'[!SetOption "SlotHighlight" "ImageName" "#@#Icons\\SlotHighlightError.png"]'
 						)
-						sHighlightMessage = T_PLATFORM_DESCRIPTIONS[tGame[E_GAME_KEYS.PLATFORM] + 1]
-											.. ' is not running'
+						sHighlightMessage = string.format(C_TRANSLATION:Get('warning_platform_not_running'),
+															C_TRANSLATION:Get(
+																T_PLATFORM_DESCRIPTIONS[
+																	tGame[
+																		E_GAME_KEYS.PLATFORM
+																	] + 1
+																]
+															)
+														)
 					elseif tGame[E_GAME_KEYS.NOT_INSTALLED] then
 						if tGame[E_GAME_KEYS.PLATFORM] == E_PLATFORMS.STEAM
 						   or tGame[E_GAME_KEYS.PLATFORM] == E_PLATFORMS.BATTLENET then
@@ -1204,11 +1242,18 @@
 								.. '"#@#Icons\\SlotHighlightInstall.png"]'
 							)
 							if tGame[E_GAME_KEYS.PLATFORM_OVERRIDE] then
-								sHighlightMessage = tGame[E_GAME_KEYS.PLATFORM_OVERRIDE]
-													.. ' - Install'
+								sHighlightMessage = string.format(C_TRANSLATION:Get('highlight_install'),
+																	tGame[E_GAME_KEYS.PLATFORM_OVERRIDE])
 							else
-								sHighlightMessage = T_PLATFORM_DESCRIPTIONS[tGame[E_GAME_KEYS.PLATFORM] + 1]
-													.. ' - Install'
+								sHighlightMessage = string.format(C_TRANSLATION:Get('highlight_install'),
+																	C_TRANSLATION:Get(
+																		T_PLATFORM_DESCRIPTIONS[
+																			tGame[
+																				E_GAME_KEYS.PLATFORM
+																			] + 1
+																		]
+																	)
+																)
 							end
 						else
 							SKIN:Bang(
@@ -1216,11 +1261,20 @@
 								.. '"#@#Icons\\SlotHighlightNotInstalled.png"]'
 							)
 							if tGame[E_GAME_KEYS.PLATFORM_OVERRIDE] then
-								sHighlightMessage = tGame[E_GAME_KEYS.PLATFORM_OVERRIDE]
-													.. ' - Not installed'
+								sHighlightMessage = string.format(
+														C_TRANSLATION:Get('highlight_not_installed'),
+														tGame[E_GAME_KEYS.PLATFORM_OVERRIDE])
 							else
-								sHighlightMessage = T_PLATFORM_DESCRIPTIONS[tGame[E_GAME_KEYS.PLATFORM] + 1]
-													.. ' - Not installed'
+								sHighlightMessage = string.format(
+														C_TRANSLATION:Get('highlight_not_installed'),
+														C_TRANSLATION:Get(
+															T_PLATFORM_DESCRIPTIONS[
+																tGame[
+																	E_GAME_KEYS.PLATFORM
+																] + 1
+															]
+														)
+													)
 							end
 						end
 					else
@@ -1231,23 +1285,27 @@
 							if tGame[E_GAME_KEYS.PLATFORM_OVERRIDE] then
 								sHighlightMessage = tGame[E_GAME_KEYS.PLATFORM_OVERRIDE]
 							else
-								sHighlightMessage = T_PLATFORM_DESCRIPTIONS[tGame[E_GAME_KEYS.PLATFORM] + 1]
+								sHighlightMessage = C_TRANSLATION:Get(
+														T_PLATFORM_DESCRIPTIONS[
+															tGame[E_GAME_KEYS.PLATFORM] + 1
+														]
+													)
 							end
 						end
 					end
 				elseif N_ACTION_STATE == E_ACTION_STATES.HIDE then
 					SKIN:Bang('[!SetOption "SlotHighlight" "ImageName" "#@#Icons\\SlotHighlightHide.png"]')
 					if tGame[E_GAME_KEYS.HIDDEN] then
-						sHighlightMessage = 'Already hidden'
+						sHighlightMessage = C_TRANSLATION:Get('highlight_already_hidden')
 					else
-						sHighlightMessage = 'Hide'
+						sHighlightMessage = C_TRANSLATION:Get('highlight_hide')
 					end
 				elseif N_ACTION_STATE == E_ACTION_STATES.UNHIDE then
 					SKIN:Bang('[!SetOption "SlotHighlight" "ImageName" "#@#Icons\\SlotHighlightUnhide.png"]')
 					if tGame[E_GAME_KEYS.HIDDEN] then
-						sHighlightMessage = 'Unhide'
+						sHighlightMessage = C_TRANSLATION:Get('highlight_unhide')
 					else
-						sHighlightMessage = 'Already unhidden'
+						sHighlightMessage = C_TRANSLATION:Get('highlight_already_unhidden')
 					end
 				end
 				if N_ACTION_STATE == E_ACTION_STATES.EXECUTE then
@@ -1255,9 +1313,16 @@
 					if T_SETTINGS[E_SETTING_KEYS.SLOT_HIGHLIGHT_HOURS_PLAYED] then
 						local nHoursPlayed = math.floor(tGame[E_GAME_KEYS.HOURS_TOTAL])
 						if nHoursPlayed == 1 then
-							sHighlightMessage = sHighlightMessage .. '1 hour'
+							sHighlightMessage = sHighlightMessage .. C_TRANSLATION:Get(
+																		'highlight_single_hour'
+																	)
 						else
-							sHighlightMessage = sHighlightMessage .. nHoursPlayed .. ' hours'
+							sHighlightMessage = sHighlightMessage .. string.format(
+																		C_TRANSLATION:Get(
+																			'highlight_multiple_hours'
+																		),
+																		nHoursPlayed
+																	)
 						end
 					end
 				end
@@ -1280,6 +1345,16 @@
 				end
 				self.bVisible = false
 				SKIN:Bang('[!HideMeterGroup "SlotHighlight"]')
+			end
+		}
+	end
+--###########################################################################################################
+--                           -> Translations
+--###########################################################################################################
+	function InitializeTranslations()
+		return {
+			Load = function(self)
+
 			end
 		}
 	end
@@ -1316,12 +1391,12 @@
 --###########################################################################################################
 	function InitializeConstants()
 		T_PLATFORM_DESCRIPTIONS = {
-			"Steam",
-			"Steam",
-			"GOG Galaxy",
-			"Shortcut",
-			"Shortcut",
-			"Blizzard App"
+			'platform_steam',
+			'platform_steam',
+			'platform_galaxy',
+			'platform_shortcut',
+			'platform_shortcut',
+			'platform_battlenet'
 		}
 	end
 --###########################################################################################################
@@ -1672,7 +1747,8 @@
 							if (tGame[E_GAME_KEYS.HIDDEN] and T_SETTINGS[E_SETTING_KEYS.SHOW_HIDDEN_GAMES])
 							   or (tGame[E_GAME_KEYS.NOT_INSTALLED]
 							   	  and T_SETTINGS[E_SETTING_KEYS.SHOW_NOT_INSTALLED_GAMES])
-							   or (not tGame[E_GAME_KEYS.HIDDEN] and not tGame[E_GAME_KEYS.NOT_INSTALLED]) then
+							   or (not tGame[E_GAME_KEYS.HIDDEN] and not tGame[E_GAME_KEYS.NOT_INSTALLED])
+							   then
 								table.insert(tAllGames, tGame)
 							end
 						end
@@ -2419,7 +2495,11 @@
 							bMandatory = true,
 							nDirection = nDir,
 							bIntoView = true,
-							bHorizontal = tonumber(T_SETTINGS[E_SETTING_KEYS.ANIMATION_SKIN_SLIDE_DIRECTION]) > 2
+							bHorizontal = tonumber(
+											T_SETTINGS[
+												E_SETTING_KEYS.ANIMATION_SKIN_SLIDE_DIRECTION
+											]
+										) > 2
 						}
 					}
 				)
@@ -2441,7 +2521,11 @@
 							bMandatory = true,
 							nDirection = nDir,
 							bIntoView = false,
-							bHorizontal = tonumber(T_SETTINGS[E_SETTING_KEYS.ANIMATION_SKIN_SLIDE_DIRECTION]) > 2
+							bHorizontal = tonumber(
+											T_SETTINGS[
+												E_SETTING_KEYS.ANIMATION_SKIN_SLIDE_DIRECTION
+											]
+										) > 2
 						}
 					}
 				)
