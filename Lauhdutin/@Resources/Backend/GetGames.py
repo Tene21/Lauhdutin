@@ -47,7 +47,10 @@ except ImportError:
     except ImportError:
         import traceback
         traceback.print_exc()
+        exception_type, exception_message, stack_trace = sys.exc_info()
+        set_skin_status("Exception raised in the backend: %s" % str(exception_message).replace("'", "`"))
         input()
+        sys.exit()
 
 try:
     ####
@@ -236,7 +239,9 @@ try:
                 for backup_path in backup_paths:
                     if os.path.exists(backup_path):
                         backup_count += 1
-                if backup_count >= len(backup_paths) - 1:
+                    else:
+                        break
+                if backup_count >= len(backup_paths):
                     os.remove(backup_paths[-1])
                     backup_count = len(backup_paths) - 1
                 while backup_count > 0:
@@ -272,5 +277,5 @@ except:
     import traceback
     traceback.print_exc()
     exception_type, exception_message, stack_trace = sys.exc_info()
-    set_skin_status("Exception raised in the backend: %s" % exception_message)
+    set_skin_status("Exception raised in the backend: %s" % str(exception_message).replace("'", "`"))
 input()
