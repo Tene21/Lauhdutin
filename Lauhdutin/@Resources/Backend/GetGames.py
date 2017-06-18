@@ -1,5 +1,5 @@
 # Python environment
-import sys, os, subprocess, json
+import sys, os, subprocess, json, time
 
 print("Running on Python %d.%d.%d" %
       (sys.version_info.major, sys.version_info.minor, sys.version_info.micro))
@@ -16,19 +16,6 @@ def set_skin_status(a_message=""):
             "OnShowStatus('%s')" % a_message, Config
         ],
         shell=False)
-
-
-#    subprocess.call(
-#        [
-#            RainmeterPath, "!SetOption", "StatusMessage", "Text", a_message,
-#            Config
-#        ],
-#        shell=False)
-#    subprocess.call(
-#        [RainmeterPath, "!UpdateMeterGroup", "Status", Config], shell=False)
-#    subprocess.call(
-#        [RainmeterPath, "!ShowMeterGroup", "Status", Config], shell=False)
-#    subprocess.call([RainmeterPath, "!Redraw", Config], shell=False)
 
 minimum_major_version = 3
 minimum_minor_version = 5
@@ -60,7 +47,10 @@ except ImportError:
     except ImportError:
         import traceback
         traceback.print_exc()
+        exception_type, exception_message, stack_trace = sys.exc_info()
+        set_skin_status("Exception raised in the backend: %s" % str(exception_message).replace("'", "`"))
         input()
+        sys.exit()
 
 try:
     ####
@@ -218,11 +208,48 @@ try:
             if not game_new.get(GameKeys.HOURS_TOTAL, None):
                 game_new[GameKeys.HOURS_TOTAL] = 0.0
 
-        set_skin_status("Downloading...")
+        set_skin_status("Downloading banners...")
         print("Downloading banners for %d games from supported platforms..." %
               (len(steam_games) + len(galaxy_games) + len(battlenet_games)))
         banner_downloader = BannerDownloader(ResourcePath)
-        banner_downloader.process(all_games)
+        for status in banner_downloader.process(all_games):
+            set_skin_status("Downloading banners...#CRLF#%d%%" % status)
+
+        # Daily backups - Adjust the list immediately below to keep more or fewer daily backups.
+        backup_paths = [
+            os.path.join(ResourcePath, "games_daily_backup_01.json"),
+            os.path.join(ResourcePath, "games_daily_backup_02.json"),
+            os.path.join(ResourcePath, "games_daily_backup_03.json"),
+            os.path.join(ResourcePath, "games_daily_backup_04.json"),
+            os.path.join(ResourcePath, "games_daily_backup_05.json")
+        ]
+        if not os.path.exists(backup_paths[0]):
+            games_path = os.path.join(ResourcePath, "games.json")
+            if os.path.exists(games_path):
+                previous_games_master_list = read_json(games_path)
+                if previous_games_master_list:
+                    print("Making a new daily backup...")
+                    write_json(backup_paths[0], previous_games_master_list)
+        else:
+            current_date = time.strftime('%Y-%m-%d', time.localtime(time.time()))
+            latest_backup_date = time.strftime('%Y-%m-%d', time.localtime(os.path.getmtime(backup_paths[0])))
+            if current_date != latest_backup_date:
+                print("Making a new daily backup...")
+                backup_count = 0
+                for backup_path in backup_paths:
+                    if os.path.exists(backup_path):
+                        backup_count += 1
+                    else:
+                        break
+                if backup_count >= len(backup_paths):
+                    os.remove(backup_paths[-1])
+                    backup_count = len(backup_paths) - 1
+                while backup_count > 0:
+                    os.rename(backup_paths[backup_count - 1], backup_paths[backup_count])
+                    backup_count -= 1
+                write_json(backup_paths[0], all_games)
+            else:
+                print("A daily backup has already been made today (%s)..." % latest_backup_date)
 
         print("Writing master list of %d games to disk..." % len(all_games))
         write_json(os.path.join(ResourcePath, "games.json"), all_games)
@@ -250,5 +277,5 @@ except:
     import traceback
     traceback.print_exc()
     exception_type, exception_message, stack_trace = sys.exc_info()
-    set_skin_status("Exception raised in the backend: %s" % exception_message)
+    set_skin_status("Exception raised in the backend: %s" % str(exception_message).replace("'", "`"))
 input()
